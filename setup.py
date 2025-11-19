@@ -32,7 +32,7 @@ pdf_chunks = client.collections.create(
 
 def extract_pdf_text(pdf_path):
     full_text = extract_text(pdf_path)
-    with open(r"C:\Users\royba\Downloads\EECE-439\project\text.txt", "w", encoding="utf-8") as f:
+    with open(r"C:\Users\royba\Downloads\EECE-439\project\data\text.txt", "w", encoding="utf-8") as f:
         f.write(full_text)
     return full_text
 
@@ -62,7 +62,7 @@ def save_chunks_to_file(chunks, filename="chunks.json"):
         json.dump(chunks, f, ensure_ascii=False, indent=2)
 
 
-pdf_path = r"C:\Users\royba\Downloads\EECE-439\project\ISO_IEC_42001_2023en.pdf"
+pdf_path = r"C:\Users\royba\Downloads\EECE-439\project\data\ISO_IEC_42001_2023en.pdf"
 pdf_text = extract_pdf_text(pdf_path)
 chunks = chunk_pdf_text(pdf_text)
 store_chunks_in_weaviate(chunks)

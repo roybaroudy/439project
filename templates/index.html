@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>ISO/IEC 42001 – AI Management Assistant</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Simple clean styling -->
+    <style>
+        :root {
+            --bg: #f5f7fb;
+            --card-bg: #ffffff;
+            --primary: #2563eb;
+            --primary-soft: rgba(37, 99, 235, 0.08);
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-soft: #e5e7eb;
+            --user-bubble: #2563eb;
+            --assistant-bubble: #f3f4f6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+        }
+
+        .page {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top bar */
+        .navbar {
+            height: 64px;
+            padding: 0 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: #ffffff;
+            border-bottom: 1px solid var(--border-soft);
+        }
+
+        .navbar-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .navbar-title {
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .navbar-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .navbar-right a {
+            font-size: 14px;
+            text-decoration: none;
+            color: var(--text-muted);
+        }
+
+        /* Main hero + chat */
+        .main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            padding: 32px 16px 40px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 960px;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .hero-title {
+            font-size: 40px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .hero-subtitle {
+            font-size: 18px;
+            color: var(--primary);
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .hero-description {
+            font-size: 14px;
+            color: var(--text-muted);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Ask card + chat */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
+        }
+
+        .card-header {
+            margin-bottom: 16px;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .card-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Chat area */
+        .chat {
+            border-radius: 16px;
+            background-color: #f9fafb;
+            border: 1px solid var(--border-soft);
+            padding: 16px;
+            height: 360px;
+            overflow-y: auto;
+            margin-bottom: 16px;
+        }
+
+        .message {
+            margin-bottom: 12px;
+            display: flex;
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.assistant {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+        }
+
+        .message.user .bubble {
+            background-color: var(--user-bubble);
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant .bubble {
+            background-color: var(--assistant-bubble);
+            color: var(--text-main);
+            border-bottom-left-radius: 4px;
+        }
+
+        .assistant-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        /* Input area */
+        .input-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #f9fafb;
+            border-radius: 999px;
+            padding: 4px 6px 4px 16px;
+            border: 1px solid var(--border-soft);
+        }
+
+        .input-row:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary-soft);
+        }
+
+        #queryInput {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 14px;
+            padding: 10px 0;
+        }
+
+        .send-btn {
+            border-radius: 999px;
+            border: none;
+            background-color: var(--primary);
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .send-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: #ffffff;
+        }
+
+        /* Footer note */
+        .footer-note {
+            margin-top: 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        @media (max-width: 640px) {
+            .hero-title {
+                font-size: 28px;
+            }
+            .card {
+                padding: 18px;
+            }
+            .chat {
+                height: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- Top bar -->
+        <header class="navbar">
+            <div class="navbar-left">
+                <span class="navbar-title">ISO/IEC 42001</span>
+                <span class="navbar-subtitle">AI Management Assistant</span>
+            </div>
+            <div class="navbar-right">
+                <a href="#" onclick="alert('You can describe ISO/IEC 42001 questions here.'); return false;">About</a>
+            </div>
+        </header>
+
+        <!-- Main -->
+        <main class="main">
+            <div class="container">
+                <section class="hero">
+                    <h1 class="hero-title">ISO/IEC 42001</h1>
+                    <p class="hero-subtitle">AI Management System Standard</p>
+                    <p class="hero-description">
+                        Get instant answers about ISO/IEC 42001 requirements, implementation guidance,
+                        and best practices for AI governance.
+                    </p>
+                </section>
+
+                <section class="card">
+                    <div class="card-header">
+                        <div class="card-title">Ask your first question</div>
+                        <div class="card-subtitle">
+                            Example: “What are the key requirements of ISO/IEC 42001?” or
+                            “How do I implement an AI management system?”
+                        </div>
+                    </div>
+
+                    <!-- Chat window -->
+                    <div id="chat" class="chat">
+                        <div class="message assistant">
+                            <div>
+                                <div class="assistant-label">Assistant</div>
+                                <div class="bubble">
+                                    Hi! Ask me anything about ISO/IEC 42001 and I’ll answer from the uploaded documents.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input row -->
+                    <form id="chatForm" class="input-row">
+                        <input
+                            id="queryInput"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="What would you like to know about ISO/IEC 42001?"
+                        />
+                        <button id="sendBtn" class="send-btn" type="submit">
+                            <!-- paper plane icon -->
+                            <svg viewBox="0 0 24 24">
+                                <path d="M3.4 20.6 20.8 12 3.4 3.4 3.3 10l9 2-9 2z" />
+                            </svg>
+                        </button>
+                    </form>
+
+                    <div class="footer-note">
+                        Powered by RAG over your ISO/IEC 42001 documents.
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Simple JS to call /rag and update the chat -->
+    <script>
+        const chatEl = document.getElementById("chat");
+        const formEl = document.getElementById("chatForm");
+        const inputEl = document.getElementById("queryInput");
+        const sendBtn = document.getElementById("sendBtn");
+
+        function appendMessage(role, text) {
+            const msg = document.createElement("div");
+            msg.className = `message ${role}`;
+
+            const bubbleWrapper = document.createElement("div");
+
+            if (role === "assistant") {
+                const label = document.createElement("div");
+                label.className = "assistant-label";
+                label.textContent = "Assistant";
+                bubbleWrapper.appendChild(label);
+            }
+
+            const bubble = document.createElement("div");
+            bubble.className = "bubble";
+            bubble.textContent = text;
+            bubbleWrapper.appendChild(bubble);
+
+            msg.appendChild(bubbleWrapper);
+            chatEl.appendChild(msg);
+
+            // scroll to bottom
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        async function sendQuery(query) {
+            sendBtn.disabled = true;
+
+            // add user message to chat
+            appendMessage("user", query);
+
+            // temporary "thinking" message
+            const thinkingId = "assistant-thinking";
+            appendMessage("assistant", "Thinking...");
+            const thinkingMsg = chatEl.lastElementChild;
+
+            try {
+                const res = await fetch("/rag", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ query }),
+                });
+
+                if (!res.ok) {
+                    throw new Error("Server error: " + res.status);
+                }
+
+                const data = await res.json();
+
+                // replace "Thinking..." with actual answer
+                chatEl.removeChild(thinkingMsg);
+                appendMessage("assistant", data.answer || "I couldn't generate an answer.");
+            } catch (err) {
+                console.error(err);
+                chatEl.removeChild(thinkingMsg);
+                appendMessage(
+                    "assistant",
+                    "Sorry, something went wrong while contacting the server."
+                );
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        formEl.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const query = inputEl.value.trim();
+            if (!query) return;
+            inputEl.value = "";
+            sendQuery(query);
+        });
+
+        // Submit on Enter (without Shift)
+        inputEl.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                formEl.dispatchEvent(new Event("submit"));
+            }
+        });
+    </script>
+</body>
+</html>

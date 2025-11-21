@@ -1,3 +1,5 @@
+import os
+import atexit
 import dotenv
 import weaviate
 from weaviate.classes.init import Auth
@@ -8,21 +10,36 @@ from flask_cors import CORS
 import re
 import google.generativeai as genai
 
+# ---- Load environment variables ----
+dotenv.load_dotenv()  # works locally; on Azure, vars come from App Settings
 
+API_KEY = os.getenv("GEMINI_API")
+WEAVIATE_URL = os.getenv("WEAVIATE_URL")
+WEAVIATE_API_KEY = os.getenv("WEAVIATE_API_KEY")
 
-dotenv.load_dotenv()
-API_KEY = dotenv.get_key(dotenv.find_dotenv(), "GEMINI_API")
-WEAVIATE_URL = dotenv.get_key(dotenv.find_dotenv(), "WEAVIATE_URL")
-WEAVIATE_API_KEY = dotenv.get_key(dotenv.find_dotenv(), "WEAVIATE_API_KEY")
-
+# ---- Configure Gemini ----
 genai.configure(api_key=API_KEY)
 gemini = genai.GenerativeModel("gemini-2.0-flash")
 
+# ---- Flask app ----
 app = Flask(__name__)
 CORS(app)
 
+# ---- Embeddings (created once) ----
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
 
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+# ---- Weaviate client (created at import time) ----
+client = weaviate.connect_to_weaviate_cloud(
+    cluster_url=WEAVIATE_URL,
+    auth_credentials=Auth.api_key(WEAVIATE_API_KEY),
+    skip_init_checks=True,
+)
+
+# Close client cleanly when the process stops
+atexit.register(lambda: client.close())
+
 
 def retrieve_relevant_chunks(query: str, top_k=5):
     vector = embeddings.embed_query(query)
@@ -37,20 +54,16 @@ def retrieve_relevant_chunks(query: str, top_k=5):
     return response
 
 
-
-
 def generate_answer_from_retrieved_chunks(query: str, results) -> str:
     """
     Generates an answer using the Gemini model based on retrieved chunks from Weaviate.
     """
-    # 1. Extract content from Weaviate results
     retrieved_chunks = [obj.properties["content"] for obj in results.objects]
     context = "\n\n".join(retrieved_chunks) if retrieved_chunks else "No relevant context found."
 
     print("\nContext for Gemini:")
     print(context)
 
-    # 2. Build the prompt properly
     prompt_text = f"""
         You are an AI assistant answering based on the following context.
 
@@ -64,15 +77,8 @@ def generate_answer_from_retrieved_chunks(query: str, results) -> str:
         If the context does not contain the answer, say "I don't know."
     """
 
-    # 3. Call Gemini correctly
     response = gemini.generate_content(prompt_text)
-
-    # 4. Return answer
     return response.text.strip()
-
-
-
-
 
 
 @app.route('/rag', methods=['POST'])
@@ -89,8 +95,9 @@ def rag_endpoint():
     results = retrieve_relevant_chunks(query)
     answer = generate_answer_from_retrieved_chunks(query, results)
     print("\nAnswer:\n", answer)
-    answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL)
 
+    # Remove <think>...</think> if it appears
+    answer = re.sub(r"<think>.*?</think>", "", answer, flags=re.DOTALL)
 
     return jsonify({
         "query": query,
@@ -102,19 +109,5 @@ def rag_endpoint():
 def index():
     return render_template("index.html")
 
-
-if __name__ == "__main__":
-
-    client = weaviate.connect_to_weaviate_cloud(
-        cluster_url=WEAVIATE_URL,          
-        auth_credentials=Auth.api_key(WEAVIATE_API_KEY),
-        skip_init_checks=True
-    )
-
-    try:
-        app.run(debug=True, port=5000)
-    finally:
-        client.close()
-        print("✅ Client connection closed.")
 
 
